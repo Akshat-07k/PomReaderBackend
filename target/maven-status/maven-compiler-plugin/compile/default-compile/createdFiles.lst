@@ -1,0 +1,7 @@
+com\project\dependency\config\CorsConfig.class
+com\project\dependency\config\CorsConfig$1.class
+com\project\dependency\DependencyApplication.class
+com\project\dependency\controllers\GetRoutes.class
+com\project\dependency\controllers\PostRoutes.class
+com\project\dependency\models\Dependency.class
+com\project\dependency\service\PomReadService.class
