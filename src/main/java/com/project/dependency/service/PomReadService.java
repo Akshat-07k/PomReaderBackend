@@ -7,8 +7,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -27,6 +28,8 @@ public class PomReadService {
     public List<Dependency> parsePomDependencies(MultipartFile file){
 
         List<Dependency> dependencies = new ArrayList<>();
+        Map<String,String> propertiesMap = new HashMap<>();
+
         InputStream inputStream = null;
 
         try{
@@ -39,6 +42,12 @@ public class PomReadService {
             Element dependenciesElement = document.selectFirst("dependencies"); // <dependencies/>
             Element propertiesElement = document.selectFirst("properties");  //<properties/>
 
+            if(propertiesElement != null){
+                for(Element property : propertiesElement.children()){
+                    propertiesMap.put(property.tagName(),property.text());
+                }
+            }
+
             if(dependenciesElement == null)return null;
 
             for(Element dependencyElement : dependenciesElement.select("dependency") ) // <dependency/>
@@ -50,11 +59,17 @@ public class PomReadService {
                 Element artifactIdElement = dependencyElement.selectFirst("artifactId");
                 String artifactId = (groupIdElement != null)? artifactIdElement.text() : "";
 
-                Element currentVersionStringElement = dependencyElement.selectFirst("version");
-                String currentVersionString = (currentVersionStringElement != null )?currentVersionStringElement.text():null;
+                Element versionElement = dependencyElement.selectFirst("version");
+                String version = (versionElement != null) ? versionElement.text() : null;
+
+                // Resolve property placeholders if present in the version
+                if (version != null && version.startsWith("${") && version.endsWith("}")) {
+                    String propertyName = version.substring(2, version.length() - 1); // Strip ${ and }
+                    version = propertiesMap.getOrDefault(propertyName, version); // Resolve or keep original
+                }
    
 
-                dependencies.add(new Dependency(groupId, artifactId,currentVersionString,getCurrentVersionFromApi(groupId, artifactId)));
+                dependencies.add(new Dependency(groupId, artifactId,version,getCurrentVersionFromApi(groupId, artifactId)));
             }
             
         }
